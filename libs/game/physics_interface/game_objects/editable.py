@@ -1,5 +1,7 @@
 from _env import *
 
+from segmentation_help import *
+
 def distance( a, b ):
     return sum ( [ (x1-x2)**2 for x1,x2 in zip( a, b ) ] ) ** .5
 
@@ -34,6 +36,7 @@ class Editable( GameObject ):
             self.set_thirdpt( origin, dim, ( x1 + (x2-x1)/2., y1 + (y2-y1)/2.) ) 
 
             # self.points is a list of points that defines the segmentation.
+            # It's of the form [ (x1,y1) (x2,y2) ... ]
             self.points = [ start, end ]
         else:
             # If a thirdpt is specified, include it in the segmentation.
@@ -92,24 +95,29 @@ class Editable( GameObject ):
     def near_start( self, pos ):  return distance( pos, self.get_start() ) <= MAX_DIST
     def near_end( self, pos ):    return distance( pos, self.get_end() ) <= MAX_DIST
 
-    # def split( self, pos ):
-    #     # Find the segment A where pos belongs.
-    #     A = find_segment( self, pos )
-        
-    #     # Split that segment at pos into B and C.
-    #     B, C = split_segment( self, A, pos )
+    def split( self, pos ):
 
-    #     # Append B to all the segements preceding A to form a segmentation S1.
-    #     S1 = segs_before( self, A ) + [ B ]
+        try:
+            # Find the segment A where pos belongs.
+            A = find_segment( self, pos )
+        except AssertionError:
+            # The pos was not found in the segmentation.
+            return
 
-    #     # Prepend C to all the segements succeeding A to form a segmentation S2.
-    #     S2 = [ C ] + segs_after( self, A )
+        # Split that segment at pos into B and C.
+        B, C = split_segment( A, pos )
 
-    #     # Create two editable lines using S1 and S2.
-    #     self.divide_self( S1, S2 )
+        # Append B to all the segements preceding A to form a segmentation S1.
+        S1 = segs_before( self, A ) + B
 
-    #     # Remove this gameobject completely.
-    #     self.remove()
+        # Prepend C to all the segements succeeding A to form a segmentation S2.
+        S2 = C + segs_after( self, A )
+
+        # Create two editable lines using S1 and S2.
+        self.divide( S1, S2 )
+
+        # Remove this gameobject completely.
+        self.remove()
 
     def length( self ):
         """ Return the length of the segmentation representing the line. """
